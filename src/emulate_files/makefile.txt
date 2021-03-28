@@ -1,0 +1,23 @@
+CC = gcc
+CFLAGS = -c -Wall
+EXE = emulate
+
+all: ${EXE}
+
+${EXE}: main_main.o utils.o decode.o execute.o
+	${CC} main_main.o utils.o decode.o execute.o -o emulate
+
+main_main.o: main_main.h main_main.c
+	 ${CC} ${CFLAGS} main_main.c
+
+utils.o: common.h utils.h utils.c
+	${CC} ${CFLAGS} utils.c
+
+decode.o: decode.h decode.c
+	${CC} ${CFLAGS} decode.c
+
+execute.o: execute.h execute.c
+	${CC} ${CFLAGS} execute.c
+
+clean:
+	rm *.o emulate

@@ -1,0 +1,210 @@
+\documentclass[11pt]{article}
+
+\usepackage{fullpage}
+\usepackage{graphicx}
+
+\begin{document}
+
+\title{Our Extension...}
+\author{Istvan Darok, James Shipley, Prashant Gurung}
+
+\maketitle
+
+\section {Assembler Structure and Implementation}
+Our implementation of the assembler follows the strategy of peforming two passes
+over the source code. \\~\\
+We created a Pair structure to store labels with their corresponding memory
+addresses, and a Symbol\_table structure which holds an array of these Pairs.
+The first pass reads the input file and populates this symbol table structure 
+with all of the labels in the source code. \\~\\
+Afterwards, the second pass is performed,
+where each instruction from the array is assembled and saved to an array of 
+unsigned integers. Once every instruction has been assembled, this array is
+now written to a binary output file. \\~\\
+Similar to our emulator implementation, we have a struct 
+Assembler, which holds variables such as the populated symbol table and the
+input file (which is stored as an array of strings). By using an assembler struct,
+we can construct a set of modular functions that are called one after another in
+main and so our main function is very short and outlines the structure of our
+assembler very clearly.
+
+\section{Extension Overview}
+For the extension, we decided to implement an interactive mandelbrot and
+julia set viewer using the SDL library. Originally, we planned on using ncurses
+for our extension, however we quickly realised that the library would not be able
+to facilitate the high level of graphics required by our project.
+After some research, we agreed to use SDL instead as it provides the same 
+functionality as ncurses with regards to user interaction (keypress and mouse)
+but has a better graphics library to suit our needs. \\~\\
+By using keys on the keyboard, the user can:
+\begin{itemize}
+    \item Move up, down, left or right.
+    \item Zoom in and out.
+    \item Increase / decrease detail  (with a cost to performance).
+\end{itemize}
+
+\section{Extension Design}
+The first struct, Complex, simply represents a complex value as it contains two 
+long doubles each representing the real and imaginary components of a complex 
+number.
+\\~\\
+We then have a Mandelbrot struct, which contains:
+\begin{itemize}
+    \item Complex center and long double range together represent the area of the
+    mandelbrot set that is being focused on/ displayed.
+    \item Each complex structure in the 2D array "area" represents the complex
+    value of each pixel on the screen.
+    \item int maxIter represents the maximum number of iterations for which the 
+    function will be applied to a complex number.
+    \item Itermap, the 2D array of integers, represents the number of iterations
+    required for the complex number at that point to diverge. If it does not diverge,
+    it will be set to maxIter.
+\end{itemize}
+The Screen structure allows us to refer to what is being displayed, and
+any inputs from the user. The struct is populated with pointers to the data 
+types from the SDL library. SDL\_Window *window and SDL\_Renderer *renderer
+are used to output our program. SDL\_Event *event is used to poll any key inputs
+the user has made.
+\\~\\
+The main program follows a simple algorithm:
+\begin{itemize}
+    \item Allocate memory for two mandelbrot structs and the screen struct.
+    \item Initialise the elements in the 2D array of mandelbrot and julia set to its
+    corresponding complex number.
+    \item For each element in the 2D array of complex numbers, compute up the 'maxIter' 
+    iteration, checking each time if the complex number diverges. If at any point it
+    does, change its corresponding iterMap value to the current iteration.
+    \item Display the current state of the mandelbrot and julia set.  
+    \item The program then enters a while loop, which will not break until the user has
+    input the quit command 'q'. In this loop, the user can enter inputs, which
+    will be polled to navigate around the mandelbrot set, zoom in and out, and
+    change the max number of iterations to be performed.
+\end{itemize}
+Initially, we had a naive implementation to compute the mandelbrot set.
+Translating the mandelbrot set only requires to for either a column or the row 
+of the array to be recomputed. However, zooming in and out requires the entire 
+mandelbrot set to be recomputed.
+So when lots of zoom in and out were performed, the program ran slowly.
+After researching ways to better compute the mandelbrot set, we came across the
+Mariani-Silver algorithm.
+\\~\\
+This algorithm relies on the fact that if a border of a region has the same 
+colour, then every pixel in the region also has the same colour. Thus, when
+calculating the mandelbrot and julia set, we only have to look at the permimeter
+of a region. If the pixels along the perimeter do not have the same colour,
+then we can subdivide the region, and recursively compute on the divided 
+regions. This possibly prevents computation on a whole region (apart from
+the perimeter).
+\\~\\
+The main challenge was implementing multi-threading for our project. Initially,
+we hoped to be able to divide the mandelbrot and julia set into several regions,
+with a thread working on each region. We however quickly realised that it would
+be very difficult and unreasonable to implement with the strict timeframe
+assigned for this project. We would have to entirely change the mandelbrot 
+struct so that multiple threads can run on the same mandelbrot and julia set 
+concurrently. Therefore, we settled to have two threads, with one working on 
+the mandelbrot set, and another working on the julia set. 
+
+\section{Extension Testing}
+Instead of hard coding all of the points of the mandelbrot set which is used
+to compare to our implementation, we thought it would be reasonable to have
+a concrete set of points which the program should satisfy.
+\\~\\ 
+There are also logical requirements the program should satisfy. 
+\begin{itemize}
+    \item The program should initialise correctly to display the mandelbrot
+    set and julia set.
+    \item The program should translate the mandelbrot set when the user inputs 
+    arrow keys.
+    \item The program should zoom in and out of the mandelbrot set.
+    \item The program allows users to change the detail of the mandelbrot and
+    julia set by choosing the number of iterations.
+    \item The julia set changes depending on the point of the mandelbrot set
+    currently displayed.
+\end{itemize}
+The testing for our Extension project was fairly easy and simple to complete,
+as we can directly interact with the program, and see the outputs that it is producing.
+So, if there is a problem with the calculation, then we will know instantly,
+as the program will draw something that doesn't look right. This was the case
+with our translate functions, as soon as we implemented them, we tested the program and
+saw that it wasn't displaying quite what we intended, and so we knew that there was an error.
+The main limitation of our Extension was the computation speed: drawing a mandelbrot is
+highly computationally taxing, and so most implementations use a GPU to run the recursive 
+functions in parallel, However due to the time limit, we could not implement a solution
+that uses the GPU (CUDA library etc.), and so at high iterations, our program is quite slow.
+
+\section{Group reflection}
+Communication between group members were effective. We had a group meeting 
+everyday at 13:00 which lasted on average for an hour. In this meeting, we would
+discuss our progress from yesterdays task. If anyone had issues with their task,
+we would attempt to solve the problem by live coding the solution. We would then
+assign tasks for each member to complete by the end of the day. However,
+splitting work between members could definitely be improved upon. James was tasked
+to implement most of the extension of our project, due to difficulty in correctly
+implementing the assemble\_sdt function in the assembler.
+\\~\\
+For next time, we would definitely establish communication faster and start working,
+or at least planning the project much earlier.At the start of the project,
+we only started talking to each other after about a week, as we were initially
+all just so focused on learning the material and watching the lectures. We have
+been very pressed for time in this project and so if we started a couple days earlier,
+then we would definitely be able to solve almost all of the errors that we have
+encountered with our current solution but don't have the time to fix.
+\\~\\
+Another improvement we could have made is in the task allocation, some of the errors we had with the assembler
+only got fixed right at the end, and some of them are still left unresolved.
+We could have been more efficient in our debugging if we all wrote the same amount of code,
+as we would have the same amount of free time and would be able to use it to debug
+in pairs, which is usually more efficient.
+\\~\\
+This also extends to our extension, as we were so pressed for time, we couldn't
+all learn how to use the SDL library properly, and how to design complex functions
+that recursively generate sections of a mandelbrot set. So what ended up happening
+was that James did most of the extension, whilst Istvan and Prashant completed and debugged
+the Assembler and the emulator.
+
+\section{Individual reflection}
+Istvan: I feel overall this was a success, especially considering we were one 
+memeber down on how many we originally thought we would have. Communication 
+between us was generally quite good, with the daily video call meetings as well 
+as quick responsiveness from others on the Teams chat.
+\\~\\
+I had a bit of knowledge in makefiles and good project structure which came in
+handy for compilation but I did sometimes feel like I wasn't able to make much
+of an impact when it came to the actual coding. Thankfully the others were 
+always ready to help and together we came up with quite a nice structure, and
+I'm sure the experience from this will also help me feel like I'm pulling my own
+weight more in the future.
+\\~\\
+Regarding the extension, I was not very well versed in Mandelbrot/Julia sets so
+I could not contribute too much to that, however I feel like I gained an
+understanding of the code and design choices which will help me contribute more
+for other similar group projects.
+\\~\\ 
+James: I feel like overall we have actually done exceptionally well considering
+our circumstances (only 3 people). Although our team had a fairly slow start,
+once we realised that we were at a disadvantage to other teams and that the deadlines
+are very tight, we organised ourselves really well and really worked hard every
+day to meet the project criteria. Once a line of communication was established,
+we all talked to each other regularly and helped each other with problems and with
+debugging.
+\\~\\
+I think my main strength was my ability to decompose the problems and create logical
+structures and algorithms that my team members could then use/implement. I was 
+good at understanding the functions that my team members had written, and where
+they might be going wrong. I would say my main two weaknesses are my lack of 
+knowledge in the composition of makefiles, however Istvan was very useful in explaining
+them to me, and also sometimes I found it difficult to find little errors and
+inconsistencies in my own code, and so pair programming was very useful as it 
+others could find the problems that I had overlooked.
+\\~\\ 
+Prashant: Reflecting on the project, I felt that I was an active contributor 
+to the group. I communicated with everyone, and had productive conversations 
+regarding issues that I ran into, and issues which they had as well.
+\\~\\
+I think that my main strength was that I was helpful in debugging implementations
+which did not pass the test cases. I would have preferred to have more input in 
+the extension, but I was not proficient enough in my knowledge of the mandelbrot
+set and the SDL library. I also think I should have progressed quicker 
+in coding solutions to the assembler.
+\end{document}
